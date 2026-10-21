@@ -1,5 +1,5 @@
 import numpy as np
-from constants import G, m_earth
+from constants import G, m_earth, omega_earth, h_ratio, C_L, C_D, A
 
 """ 
 r = Distance from Earth center
@@ -12,24 +12,23 @@ F_D = Aerodynamic drag force
 F_L = Aerodynamic lift force
 """
 
-def F_L(rho: float, V: float, C_L: float, A: float) -> float:
+def F_L(rho: float, V: float) -> float:
     return 0.5 * rho * V**2 * C_L * A
 
-def F_D(rho: float, V: float, C_D: float, A: float) -> float:
+def F_D(rho: float, V: float) -> float:
     return 0.5 * rho * V**2 * C_D * A
 
 def A(r_b: float) -> float:
     return np.pi * r_b**2
 
-def beta(m: float, C_D: float, A: float) -> float:
+def beta(m: float, C_D: float) -> float:
     return m/(C_D*A)
 
 def r_dot(V: float, gamma: float) -> float:
     return V * np.sin(gamma)
 
-
 def V_dot(
-        F_d: float, 
+        F_D: float,
         m: float, 
         g: float, 
         gamma: float, 
@@ -38,11 +37,11 @@ def V_dot(
         phi: float, 
         psi: float
     ) -> float:
-    return -(F_d/m)-g*np.sin(gamma)+(omega**2)*r*np.cos(phi)*(np.sin(gamma)*np.cos(phi)-np.cos(gamma)*np.sin(phi)*np.sin(psi))
+    return -(F_D/m)-g*np.sin(gamma)+(omega**2)*r*np.cos(phi)*(np.sin(gamma)*np.cos(phi)-np.cos(gamma)*np.sin(phi)*np.sin(psi))
     
 
 def gamma_dot(
-        F_l: float, 
+        F_L: float,
         m: float, 
         V: float, 
         g: float, 
@@ -53,7 +52,7 @@ def gamma_dot(
         psi: float, 
         nu: float
     ) -> float:
-    return (1/V)(F_l*np.cos(nu)/m - g*np.cos(gamma) + omega**2 * r * np.cos(phi)*(np.cos(gamma)*np.cos(phi) + np.sin(gamma)*np.sin(phi)*np.sin(psi)) + (V**2 * np.cos(gamma)/r) + 2* omega*V*np.cos(phi)*np.cos(psi))
+    return (1/V) * (F_L*np.cos(nu)/m - g*np.cos(gamma) + omega**2 * r * np.cos(phi)*(np.cos(gamma)*np.cos(phi) + np.sin(gamma)*np.sin(phi)*np.sin(psi)) + (V**2 * np.cos(gamma)/r) + 2* omega*V*np.cos(phi)*np.cos(psi))
 
 def psi_dot(
         V: float, 
@@ -76,4 +75,17 @@ def theta_dot (V: float, gamma: float, psi: float, r: float, phi: float) -> floa
 
 def g(r: float) -> float:
     return G*m_earth/(r**2)
+
+def f(state, drag_force: float, lift_force: float, m: float, omega: float, nu: float) -> np.ndarray:
+    """Return derivatives for the state (r, V, gamma, psi, phi, theta)."""
+    r, V, gamma, psi, phi, theta = state
+    gravity = g(r)
+    return np.array([
+        r_dot(V, gamma),
+        V_dot(drag_force, m, gravity, gamma, omega_earth, r, phi, psi),
+        gamma_dot(lift_force, m, V, gravity, gamma, omega_earth, r, phi, psi, nu),
+        psi_dot(V, lift_force, m, gamma, omega_earth, r, phi, psi, nu),
+        phi_dot(V, gamma, psi, r),
+        theta_dot(V, gamma, psi, r, phi),
+    ])
 
