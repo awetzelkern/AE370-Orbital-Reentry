@@ -17,8 +17,14 @@ h_ratio = 1.4
 A = 19.86
 """Reference Area for the Orion space capsule (m^2)"""
 
-C_D = 1.26
+cd = 1.26
 """Coefficient of Drag for the Orion space capsule"""
 
-C_L = 0.34
+cl = 0.34
 """Coefficient of Lift for the Orion space capsule"""
+
+m_capsule = 26000.0
+"""Mass of capsule, in kilograms"""
+
+nu = 0.0
+"""Vehicle Bank Angle, in radians"""

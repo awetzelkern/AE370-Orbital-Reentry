@@ -1,5 +1,5 @@
 import numpy as np
-from constants import G, m_earth, omega_earth, h_ratio, C_L, C_D, A
+from constants import G, m_earth, cd, cl, A as reference_area
 
 """ 
 r = Distance from Earth center
@@ -13,16 +13,16 @@ F_L = Aerodynamic lift force
 """
 
 def F_L(rho: float, V: float) -> float:
-    return 0.5 * rho * V**2 * C_L * A
+    return 0.5 * rho * V**2 * cl * reference_area
 
 def F_D(rho: float, V: float) -> float:
-    return 0.5 * rho * V**2 * C_D * A
+    return 0.5 * rho * V**2 * cd * reference_area
 
-def A(r_b: float) -> float:
+def cross_sectional_area(r_b: float) -> float:
     return np.pi * r_b**2
 
 def beta(m: float, C_D: float) -> float:
-    return m/(C_D*A)
+    return m/(C_D*reference_area)
 
 def r_dot(V: float, gamma: float) -> float:
     return V * np.sin(gamma)
@@ -82,9 +82,9 @@ def f(state, drag_force: float, lift_force: float, m: float, omega: float, nu: f
     gravity = g(r)
     return np.array([
         r_dot(V, gamma),
-        V_dot(drag_force, m, gravity, gamma, omega_earth, r, phi, psi),
-        gamma_dot(lift_force, m, V, gravity, gamma, omega_earth, r, phi, psi, nu),
-        psi_dot(V, lift_force, m, gamma, omega_earth, r, phi, psi, nu),
+        V_dot(drag_force, m, gravity, gamma, omega, r, phi, psi),
+        gamma_dot(lift_force, m, V, gravity, gamma, omega, r, phi, psi, nu),
+        psi_dot(V, lift_force, m, gamma, omega, r, phi, psi, nu),
         phi_dot(V, gamma, psi, r),
         theta_dot(V, gamma, psi, r, phi),
     ])

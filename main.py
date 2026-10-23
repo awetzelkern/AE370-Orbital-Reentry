@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import equations_of_motion as eom
+from solver import solve_ivp
 from scipy.differentiate import jacobian
 
 
