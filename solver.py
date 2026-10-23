@@ -7,13 +7,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import fsolve, brentq
 
-from atmospheric_model import get_rho
-
-drag_force = eom.F_D(rho=get_rho(init.r), V=init.v)
-lift_force = eom.F_L(rho=get_rho(init.r), V=init.v)
-
 J = jacobian(
-    lambda state: eom.f(state, drag_force, lift_force, const.m_capsule, const.omega_earth, const.nu),
+    lambda state: eom.f(state, 0.0, const.m_capsule, const.omega_earth, const.nu, const.A),
     init.state,
 ).df
 print(J)
@@ -23,7 +18,12 @@ eigvals, eigvecs = np.linalg.eig(J)
 stiffness_ratio = np.max(np.abs(eigvals)) / np.min(np.abs(eigvals))
 
 R_s = np.max(np.abs(eigvals))
-dt_limit = 2.0 / R_s
+decaying = eigvals[eigvals.real < -1e-12]
+
+dt_limit = (
+    np.min(-2 * decaying.real / np.abs(decaying)**2)
+    if decaying.size else np.inf
+)
 
 print("Eigenvalues:", eigvals)
 print("Min magnitude:", np.min(np.abs(eigvals)))

@@ -1,6 +1,6 @@
 import numpy as np
 from constants import G, m_earth, cd, cl, A as reference_area
-
+from atmospheric_model import get_rho
 """ 
 r = Distance from Earth center
 V = Vehicle velocity
@@ -76,16 +76,18 @@ def theta_dot (V: float, gamma: float, psi: float, r: float, phi: float) -> floa
 def g(r: float) -> float:
     return G*m_earth/(r**2)
 
-def f(state, drag_force: float, lift_force: float, m: float, omega: float, nu: float) -> np.ndarray:
-    """Return derivatives for the state (r, V, gamma, psi, phi, theta)."""
+def f(state, t, m, omega, nu, S) -> np.ndarray:
     r, V, gamma, psi, phi, theta = state
     gravity = g(r)
+    rho = get_rho(r)
+    drag_force = 0.5 * rho * V**2 * S * cd
+    lift_force = 0.5 * rho * V**2 * S * cl
     return np.array([
         r_dot(V, gamma),
         V_dot(drag_force, m, gravity, gamma, omega, r, phi, psi),
         gamma_dot(lift_force, m, V, gravity, gamma, omega, r, phi, psi, nu),
         psi_dot(V, lift_force, m, gamma, omega, r, phi, psi, nu),
         phi_dot(V, gamma, psi, r),
-        theta_dot(V, gamma, psi, r, phi),
+        theta_dot(V, gamma, psi, r, phi)
     ])
 
