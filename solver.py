@@ -7,29 +7,55 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import fsolve, brentq
 
-J = jacobian(
-    lambda state: eom.f(state, 0.0, const.m_capsule, const.omega_earth, const.nu, const.A),
-    init.state,
-).df
-print(J)
+# J = jacobian(
+#     lambda state: eom.f(state, 0.0),
+#     init.state,
+# ).df
+# print(J)
 
+def jac_scipy(f, state, t=0.0):
+    res = jacobian(lambda x: f(x, t), np.asarray(state, dtype=float))
+    return res.df   # shape (6, 6)
 
-eigvals, eigvecs = np.linalg.eig(J)
-stiffness_ratio = np.max(np.abs(eigvals)) / np.min(np.abs(eigvals))
+J_init = jac_scipy(eom.f, init.state, 0)
 
-R_s = np.max(np.abs(eigvals))
-decaying = eigvals[eigvals.real < -1e-12]
+pre_deployment_state = np.array([6368001,  1.5490282085199362e+02, -1.2283937305619541e+00,  1.2218222139501493e+00,
+  5.9195644814515047e-01, -2.6818091457096522e+00])
+J_threshold = jac_scipy(eom.f, pre_deployment_state, 0)
 
-dt_limit = (
-    np.min(-2 * decaying.real / np.abs(decaying)**2)
-    if decaying.size else np.inf
+eigvals_init, eigvecs_init = np.linalg.eig(J_init)
+stiffness_ratio_init = np.max(np.abs(eigvals_init)) / np.min(np.abs(eigvals_init))
+
+eigvals_thresh, eigvecs_thresh = np.linalg.eig(J_threshold)
+stiffness_ratio_thresh = np.max(np.abs(eigvals_thresh)) / np.min(np.abs(eigvals_thresh))
+
+R_s_init = np.max(np.abs(eigvals_init))
+decaying_init = eigvals_init[eigvals_init.real < -1e-12]
+
+R_s_thresh = np.max(np.abs(eigvals_thresh))
+decaying_thresh = eigvals_thresh[eigvals_thresh.real < 1e-12]
+
+dt_limit_init = (
+    np.min(-2 * decaying_init.real / np.abs(decaying_init)**2)
+    if decaying_init.size else np.inf
 )
 
-print("Eigenvalues:", eigvals)
-print("Min magnitude:", np.min(np.abs(eigvals)))
-print("Max magnitude:", np.max(np.abs(eigvals)))
+dt_limit_thresh = (
+    np.min(-2 * decaying_thresh.real / np.abs(decaying_thresh)**2)
+    if decaying_init.size else np.inf
+)
 
-print(stiffness_ratio, R_s, dt_limit)
+print("Initial State Stuff")
+print("Eigenvalues:", eigvals_init)
+print("Min magnitude:", np.min(np.abs(eigvals_init)))
+print("Max magnitude:", np.max(np.abs(eigvals_init)))
+print(stiffness_ratio_init, R_s_init, dt_limit_init)
+
+print("Threshold State Stuff")
+print("Eigenvalues:", eigvals_thresh)
+print("Min magnitude:", np.min(np.abs(eigvals_thresh)))
+print("Max magnitude:", np.max(np.abs(eigvals_thresh)))
+print(stiffness_ratio_thresh, R_s_thresh, dt_limit_thresh)
 
 def forward_euler(f, u_start, t_end, dt):
     """March u' = f(u, t) from t = 0 to t_end with forward Euler (Lecture 10).

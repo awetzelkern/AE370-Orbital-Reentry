@@ -1,5 +1,5 @@
 import numpy as np
-from constants import G, m_earth, cd, cl, A as reference_area
+from constants import G, m_earth, r_earth, nu, cd, cl, m_capsule, parachute_deployment_altitude, omega_earth, A_parachutes, A
 from atmospheric_model import get_rho
 """ 
 r = Distance from Earth center
@@ -13,16 +13,16 @@ F_L = Aerodynamic lift force
 """
 
 def F_L(rho: float, V: float) -> float:
-    return 0.5 * rho * V**2 * cl * reference_area
+    return 0.5 * rho * V**2 * cl * A
 
 def F_D(rho: float, V: float) -> float:
-    return 0.5 * rho * V**2 * cd * reference_area
+    return 0.5 * rho * V**2 * cd * A
 
 def cross_sectional_area(r_b: float) -> float:
     return np.pi * r_b**2
 
 def beta(m: float, C_D: float) -> float:
-    return m/(C_D*reference_area)
+    return m/(C_D*A)
 
 def r_dot(V: float, gamma: float) -> float:
     return V * np.sin(gamma)
@@ -76,12 +76,15 @@ def theta_dot (V: float, gamma: float, psi: float, r: float, phi: float) -> floa
 def g(r: float) -> float:
     return G*m_earth/(r**2)
 
-def f(state, t, m, omega, nu, S) -> np.ndarray:
+def f(state, t) -> np.ndarray:
     r, V, gamma, psi, phi, theta = state
     gravity = g(r)
     rho = get_rho(r)
-    drag_force = 0.5 * rho * V**2 * S * cd
-    lift_force = 0.5 * rho * V**2 * S * cl
+    drag_area = np.where(r - r_earth < parachute_deployment_altitude, A_parachutes, A)
+    drag_force = 0.5 * rho * V**2 * drag_area * cd
+    lift_force = 0.5 * rho * V**2 * A * cl
+    m = m_capsule
+    omega = omega_earth
     return np.array([
         r_dot(V, gamma),
         V_dot(drag_force, m, gravity, gamma, omega, r, phi, psi),

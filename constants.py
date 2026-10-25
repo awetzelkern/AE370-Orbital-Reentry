@@ -2,11 +2,11 @@
 m_earth = 5.9622e24
 """Mass of the earth, in kilograms"""
 
-r_earth = 6371
-"""Radius of the earth, in km"""
+r_earth = 6371000
+"""Radius of the earth, in m"""
 
-G = 6.6742e-20
-"""Gravitational constant, in km^3 / kg*s**2"""
+G = 6.6742e-11
+"""Gravitational constant, in m^3 / kg*s**2"""
 
 omega_earth = 7.2921159e-5
 """Rotation rate of earth in rad/s"""
@@ -16,6 +16,12 @@ h_ratio = 1.4
 
 A = 19.86
 """Reference Area for the Orion space capsule (m^2)"""
+
+A_parachutes = 2000
+"""Reference Area for the Orion space capsule with parachutes deployed (m^2)"""
+
+parachute_deployment_altitude = 3000.0
+"""Altitude above the surface at which parachutes deploy, in meters."""
 
 cd = 1.26
 """Coefficient of Drag for the Orion space capsule"""
