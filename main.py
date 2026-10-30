@@ -11,7 +11,7 @@ import constants as c
 
 if __name__ == "__main__":
     ground_event = lambda state, time: state[0] - c.r_earth
-    us, times = ab3(eom.f, init.state, 700, 4.49, starter=heun)
+    us, times = ab3(eom.f, init.state, 642, 2.4, starter=heun)
     if not np.all(np.isfinite(us)) or np.any(us[:, 1] < 0):
         raise RuntimeError("Invalid trajectory: nonfinite state or negative speed; plots not generated.")
     reached_ground = abs(ground_event(us[-1], times[-1])) < 1e-6

@@ -2,7 +2,7 @@
 m_earth = 5.9622e24
 """Mass of the earth, in kilograms"""
 
-r_earth = 6371000
+r_earth = 6378000
 """Radius of the earth, in m"""
 
 G = 6.6742e-11
@@ -17,13 +17,13 @@ h_ratio = 1.4
 A = 19.86
 """Reference Area for the Orion space capsule (m^2)"""
 
-cd = 1.3
+cd = 1.45
 """Coefficient of Drag for the Orion space capsule"""
 
 cl = 0.3
 """Coefficient of Lift for the Orion space capsule"""
 
-m_capsule = 10800.0
+m_capsule = 9300
 """Mass of capsule, in kilograms"""
 
 nu = 0.0

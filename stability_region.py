@@ -3,7 +3,8 @@
 Run ``python3 stability_region.py`` to create
 ``figures/stability/ab3_jacobian_checkpoints.png``. Checkpoints come from a
 BDF reference trajectory sampled every second. The plotted limits describe
-local AB3 decay stability; neutral and growing modes are shown separately.
+local AB3 decay stability. Each region shows eigenvalues scaled by the
+smallest checkpoint timestep limit.
 """
 from pathlib import Path
 
@@ -123,7 +124,7 @@ def checked_jacobian(f, state, time):
 
 
 def choose_checkpoints(states, times, earth_radius):
-    """Five actual trajectory samples: entry, two load phases, 10 km, late flight."""
+    """Five trajectory samples: entry, two load phases, 10 km, and above 3 km."""
     from atmospheric_model import get_rho
 
     if len(times) < 6:
@@ -136,14 +137,17 @@ def choose_checkpoints(states, times, earth_radius):
               if len(peaks) > 1 else len(times) // 2)
     below = np.flatnonzero(h <= 10000)
     low = int(below[0]) if len(below) else 3 * len(times) // 4
-    reached_ground = abs(h[-1]) < 1e-6
+    below_3km = np.flatnonzero(h <= 3000)
+    if not len(below_3km):
+        raise ValueError("Trajectory does not reach 3 km for checkpoint 5")
+    if below_3km[0] == 0:
+        raise ValueError("Trajectory starts at or below 3 km")
     selected = [
         ("Entry", 0),
         ("First load peak" if len(peaks) else "Early flight", first),
         ("Second load peak" if len(peaks) > 1 else "Midflight", second),
         ("Below 10 km" if len(below) else "Late descent", low),
-        ("Before ground contact" if reached_ground else "Last sample",
-         len(times) - 2 if reached_ground else len(times) - 1),
+        ("Above 3 km", int(below_3km[0]) - 1),
     ]
     indices = [k for _, k in selected]
     if len(set(indices)) != 5 or indices != sorted(indices):
@@ -189,51 +193,38 @@ def run_analysis(output_dir=None):
     grid = stability_region()
     fig, axes = plt.subplots(2, 3, figsize=(13, 8), layout="constrained")
     fig.suptitle("AB3 stability at five trajectory states", fontsize=15)
-    checkpoint_times, timestep_limits = [], []
-    for ax, (label, k) in zip(axes.flat, choose_checkpoints(states, times, c.r_earth)):
+    checkpoints = []
+    for label, k in choose_checkpoints(states, times, c.r_earth):
         J, _, _ = checked_jacobian(eom.f, states[k], times[k])
         eigenvalues = np.linalg.eigvals(J)
-        kinds = np.array([mode_kind(lam) for lam in eigenvalues])
-        usable = eigenvalues[np.isin(kinds, ["decaying", "oscillatory"])]
         limit, _ = dt_limit(eigenvalues)
         if not np.isfinite(limit) or limit <= 0:
             raise RuntimeError(f"No finite positive AB3 decay limit at {label}")
-        checkpoint_times.append(times[k])
-        timestep_limits.append(limit)
+        checkpoints.append((label, k, eigenvalues, limit))
 
+    minimum_limit = min(checkpoint[3] for checkpoint in checkpoints)
+    for number, (ax, (label, k, eigenvalues, limit)) in enumerate(zip(axes.flat, checkpoints), 1):
         draw_region(ax, grid)
-        ax.set_xlim(-1.1, .7)
-        for dt, marker, color, step_label in [
-            (1., "o", "#0072B2", "Δt = 1 s"),
-            (.8 * limit, "s", "#009E73", "0.8 × local limit"),
-            (1.2 * limit, "^", "#D55E00", "1.2 × local limit"),
-        ]:
-            w = dt * usable
-            ax.scatter(w.real, w.imag, marker=marker, facecolors="none",
-                       edgecolors=color, s=36, label=step_label, zorder=4)
-        growth = eigenvalues[kinds == "growing"]
-        if len(growth):
-            ax.scatter(growth.real, growth.imag, marker="x", color="#b33b32",
-                       s=32, label="Growing modes (1 s)", zorder=5)
-        if np.any(kinds == "neutral"):
-            ax.plot(0, 0, "+", color="black", ms=7, label="Neutral modes")
+        w = minimum_limit * eigenvalues
+        ax.scatter(w.real, w.imag, color="#0072B2", s=36, zorder=4)
+        ax.set_xlim(min(-.8, w.real.min() * 1.1), max(.3, w.real.max() * 1.1))
+        ax.set_ylim(min(-.9, w.imag.min() * 1.1), max(.9, w.imag.max() * 1.1))
+        magnitudes = np.abs(eigenvalues)
+        nonzero = magnitudes[magnitudes > 1e-12]
+        stiffness = nonzero.max() / nonzero.min() if len(nonzero) else np.nan
         altitude_km = (states[k, 0] - c.r_earth) / 1000
-        ax.set_title(f"{label} · {times[k]:g} s\n"
-                     f"h = {altitude_km:.2f} km; Δt limit = {limit:.2f} s", fontsize=10)
+        ax.set_title(f"Checkpoint {number} · {times[k]:g} s\n"
+                     f"h = {altitude_km:.2f} km; stiffness ratio = {stiffness:.2e}\n"
+                     f"Δt = {minimum_limit:.3g} s (minimum limit)", fontsize=10)
 
     ax = axes.flat[-1]
-    ax.semilogy(checkpoint_times, timestep_limits, "o-", label="Local AB3 limit")
+    ax.semilogy([times[k] for _, k, _, _ in checkpoints],
+                [limit for _, _, _, limit in checkpoints], "o-", label="Local AB3 limit")
     ax.axhline(1, color=".4", linestyle="--", label="Reference timestep: 1 s")
     ax.set(xlabel="Time since entry (s)", ylabel="Timestep (s)",
            title="Local limits at selected states")
     ax.legend(fontsize=8)
     ax.grid(alpha=.2)
-    legend = {}
-    for ax in axes.flat[:-1]:
-        handles, labels = ax.get_legend_handles_labels()
-        legend.update(zip(labels, handles))
-    fig.legend(legend.values(), legend.keys(), loc="outside lower center", ncol=3, fontsize=8)
-
     output_dir = (Path(output_dir) if output_dir is not None else
                   Path(__file__).resolve().parent / "figures" / "stability")
     output_dir.mkdir(parents=True, exist_ok=True)

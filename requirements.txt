@@ -1,6 +1,0 @@
-numpy
-scipy>=1.15
-matplotlib
-pyatmos==1.2.7
-# pyatmos imports pkg_resources, which was removed in setuptools 82.
-setuptools<82
