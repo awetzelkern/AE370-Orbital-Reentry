@@ -1,16 +1,12 @@
-import numpy as np
-from constants import G, m_earth, r_earth, nu, cd, cl, m_capsule, parachute_deployment_altitude, omega_earth, A_parachutes, A
-from atmospheric_model import get_rho
-""" 
-r = Distance from Earth center
-V = Vehicle velocity
-gamma = Flight path angle
-psi = Azimuth angle
-phi = Latitude
-theta = Longitude
-F_D = Aerodynamic drag force
-F_L = Aerodynamic lift force
+"""Six-state reentry dynamics in a rotating Earth frame.
+
+State: radius, speed, flight path angle, azimuth, latitude, longitude.
 """
+
+import numpy as np
+
+from constants import G, m_earth, nu, cd, cl, m_capsule, omega_earth, A
+from atmospheric_model import get_rho
 
 def F_L(rho: float, V: float) -> float:
     return 0.5 * rho * V**2 * cl * A
@@ -37,7 +33,9 @@ def V_dot(
         phi: float, 
         psi: float
     ) -> float:
-    return -(F_D/m)-g*np.sin(gamma)+(omega**2)*r*np.cos(phi)*(np.sin(gamma)*np.cos(phi)-np.cos(gamma)*np.sin(phi)*np.sin(psi))
+    return (-(F_D / m) - g * np.sin(gamma)
+            + (omega**2) * r * np.cos(phi)
+            * (np.sin(gamma) * np.cos(phi) - np.cos(gamma) * np.sin(phi) * np.sin(psi)))
     
 
 def gamma_dot(
@@ -52,7 +50,12 @@ def gamma_dot(
         psi: float, 
         nu: float
     ) -> float:
-    return (1/V) * (F_L*np.cos(nu)/m - g*np.cos(gamma) + omega**2 * r * np.cos(phi)*(np.cos(gamma)*np.cos(phi) + np.sin(gamma)*np.sin(phi)*np.sin(psi)) + (V**2 * np.cos(gamma)/r) + 2* omega*V*np.cos(phi)*np.cos(psi))
+    return ((1 / V) * (F_L * np.cos(nu) / m - g * np.cos(gamma)
+                       + omega**2 * r * np.cos(phi)
+                       * (np.cos(gamma) * np.cos(phi)
+                          + np.sin(gamma) * np.sin(phi) * np.sin(psi))
+                       + (V**2 * np.cos(gamma) / r)
+                       + 2 * omega * V * np.cos(phi) * np.cos(psi)))
 
 def psi_dot(
         V: float, 
@@ -65,23 +68,28 @@ def psi_dot(
         psi: float,
         nu: float
     ) -> float:
-    return (1/V) * (F_L * np.sin(nu) / (m*np.cos(gamma)) - (V**2/r) * (np.cos(gamma)*np.cos(psi)*np.tan(phi)) + 2*omega*V*(np.tan(gamma)*np.cos(phi)*np.sin(psi) - np.sin(phi)) - (omega**2*r)/(np.cos(gamma))*np.sin(phi)*np.cos(phi)*np.cos(psi))
+    return ((1 / V) * (F_L * np.sin(nu) / (m * np.cos(gamma))
+                       - (V**2 / r) * (np.cos(gamma) * np.cos(psi) * np.tan(phi))
+                       + 2 * omega * V * (np.tan(gamma) * np.cos(phi) * np.sin(psi)
+                                          - np.sin(phi))
+                       - (omega**2 * r) / (np.cos(gamma)) * np.sin(phi)
+                       * np.cos(phi) * np.cos(psi)))
 
-def phi_dot (V: float, gamma: float, psi: float, r: float) -> float:
+def phi_dot(V: float, gamma: float, psi: float, r: float) -> float:
     return V*np.cos(gamma)*np.sin(psi)/r
 
-def theta_dot (V: float, gamma: float, psi: float, r: float, phi: float) -> float:
+def theta_dot(V: float, gamma: float, psi: float, r: float, phi: float) -> float:
     return V*np.cos(gamma)*np.cos(psi)/(r*np.cos(phi))
 
 def g(r: float) -> float:
     return G*m_earth/(r**2)
 
 def f(state, t) -> np.ndarray:
+    """Return the time derivative of the six-state trajectory."""
     r, V, gamma, psi, phi, theta = state
     gravity = g(r)
     rho = get_rho(r)
-    drag_area = np.where(r - r_earth < parachute_deployment_altitude, A_parachutes, A)
-    drag_force = 0.5 * rho * V**2 * drag_area * cd
+    drag_force = 0.5 * rho * V**2 * A * cd
     lift_force = 0.5 * rho * V**2 * A * cl
     m = m_capsule
     omega = omega_earth

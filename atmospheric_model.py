@@ -8,10 +8,10 @@ from pyatmos import coesa76
 from constants import r_earth
 
 def get_rho(r: float | np.ndarray) -> float | np.ndarray:
-    """Return density in kg/m^3 for Earth-centered radii in km.
+    """Return density in kg/m^3 for Earth-centered radii in meters.
 
     Array inputs retain their shape, including batches passed by jacobian.
     """
-    alt = np.asarray(r/1000) - r_earth/1000  # geometric altitude in km
+    alt = np.asarray(r / 1000) - r_earth / 1000  # geometric altitude in km
     rho = coesa76(alt.reshape(-1)).rho.reshape(alt.shape)
     return rho.item() if rho.ndim == 0 else rho

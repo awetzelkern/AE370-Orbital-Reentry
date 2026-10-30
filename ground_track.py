@@ -11,7 +11,7 @@ from matplotlib.ticker import FuncFormatter, MaxNLocator
 import numpy as np
 
 
-def plot_ground_track(states, times, output_path, deployment_time=None):
+def plot_ground_track(states, times, output_path, endpoint_label="End of simulation"):
     """Plot Earth-fixed longitude theta versus latitude phi (state angles in rad)."""
     latitude = np.rad2deg(states[:, 4])
     longitude = np.rad2deg(np.unwrap(states[:, 5]))
@@ -23,6 +23,12 @@ def plot_ground_track(states, times, output_path, deployment_time=None):
     lat_margin = max(3, np.ptp(latitude) * 0.2)
     detail = (longitude.min() - lon_margin, longitude.max() + lon_margin,
               max(-90, latitude.min() - lat_margin), min(90, latitude.max() + lat_margin))
+    # Leave geographic context around a mostly east-west track rather than
+    # squeezing the detailed map into a thin strip.
+    half_height = max((detail[3] - detail[2]) / 2,
+                      (detail[1] - detail[0]) * np.cos(np.deg2rad(center_lat)) * 0.35)
+    detail = (detail[0], detail[1], max(-90, center_lat - half_height),
+              min(90, center_lat + half_height))
     overview = (min(center_lon - 55, detail[0]), max(center_lon + 55, detail[1]),
                 max(-90, min(center_lat - 40, detail[2])),
                 min(90, max(center_lat + 40, detail[3])))
@@ -68,13 +74,8 @@ def plot_ground_track(states, times, output_path, deployment_time=None):
         ax.add_collection(track)
         ax.scatter(longitude[0], latitude[0], s=65, color="limegreen", edgecolor="black",
                    label="Start", zorder=5)
-        if deployment_time is not None:
-            deployment_lon = np.interp(deployment_time, times, longitude)
-            deployment_lat = np.interp(deployment_time, times, latitude)
-            ax.scatter(deployment_lon, deployment_lat, marker="*", s=180,
-                       color="darkorange", edgecolor="black", label="Parachute threshold", zorder=5)
         ax.scatter(longitude[-1], latitude[-1], marker="x", s=65, color="black",
-                   linewidth=2, label="End of simulation", zorder=6)
+                   linewidth=2, label=endpoint_label, zorder=6)
         ax.set(xlim=bounds[:2], ylim=bounds[2:], title=title,
                xlabel="Longitude θ", ylabel="Latitude φ")
         # Equirectangular view with longitude scaled at the central latitude.
@@ -90,14 +91,9 @@ def plot_ground_track(states, times, output_path, deployment_time=None):
                                edgecolor="#485c69", linewidth=1.2, zorder=4))
     axes[1].annotate(f"Start · {times[0]:g} s", points[0], xytext=(-55, 15),
                      textcoords="offset points", fontsize=9)
-    axes[1].annotate(f"End · {times[-1]:g} s", points[-1], xytext=(-65, 28),
+    axes[1].annotate(f"{endpoint_label}\n{times[-1]:.1f} s", points[-1], xytext=(-65, 28),
                      textcoords="offset points", fontsize=9,
                      arrowprops={"arrowstyle": "-", "color": "black"})
-    if deployment_time is not None:
-        axes[1].annotate(f"Parachute threshold\n≈ {deployment_time:.2f} s",
-                         (deployment_lon, deployment_lat), xytext=(-105, -45),
-                         textcoords="offset points", fontsize=9, color="#965000",
-                         arrowprops={"arrowstyle": "-", "color": "#965000"})
     axes[1].legend(loc="lower right", fontsize=8)
     fig.colorbar(track, ax=list(axes), location="bottom", shrink=0.75, pad=0.06,
                  label="Elapsed time (s)")

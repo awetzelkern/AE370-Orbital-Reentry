@@ -17,19 +17,13 @@ h_ratio = 1.4
 A = 19.86
 """Reference Area for the Orion space capsule (m^2)"""
 
-A_parachutes = 2000
-"""Reference Area for the Orion space capsule with parachutes deployed (m^2)"""
-
-parachute_deployment_altitude = 3000.0
-"""Altitude above the surface at which parachutes deploy, in meters."""
-
-cd = 1.26
+cd = 1.3
 """Coefficient of Drag for the Orion space capsule"""
 
-cl = 0.34
+cl = 0.3
 """Coefficient of Lift for the Orion space capsule"""
 
-m_capsule = 26000.0
+m_capsule = 10800.0
 """Mass of capsule, in kilograms"""
 
 nu = 0.0
