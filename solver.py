@@ -23,8 +23,8 @@ dt_limit_init = (
 
 print("Initial State Stuff")
 print("Eigenvalues:", eigvals_init)
-print("Min magnitude:", np.min(np.abs(eigvals_init)))
-print("Max magnitude:", np.max(np.abs(eigvals_init)))
+print("Min magnitude:", np.min(np.abs(np.real(eigvals_init))))
+print("Max magnitude:", np.max(np.abs(np.real(eigvals_init))))
 print(stiffness_ratio_init, R_s_init, dt_limit_init)
 
 def heun(f, w_start, t_end, dt):
